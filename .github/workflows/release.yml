@@ -87,7 +87,7 @@ jobs:
         working-directory: src-tauri
 
       - name: Build
-        run: npx tauri build --ci --target ${{ matrix.target }} -- --no-sign
+        run: npx tauri build --ci --target ${{ matrix.target }} --no-sign
         working-directory: src-tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -159,12 +159,15 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK components
+      - name: Accept Android SDK licenses
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;27.0.12077973"
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f 2>/dev/null | head -1)
+          echo "sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-34" "build-tools;34.0.0" "ndk;27.0.12077973" || true
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
 
@@ -186,30 +189,23 @@ jobs:
         run: npm ci
         working-directory: src-tauri
 
-      - name: Init Android project (unsigned)
+      - name: Init Android project
         run: npx tauri android init --ci
         working-directory: src-tauri
         env:
           CI: 'true'
 
-      - name: Build APK (debug keystore auto-generated)
+      - name: Build APK
         run: npx tauri android build --apk --ci
         working-directory: src-tauri
         env:
           CI: 'true'
           NDK_HOME: ${{ env.NDK_HOME }}
 
-      - name: Locate APK
-        run: |
-          APK=$(find src-tauri/gen/android src-tauri/target -type f -name '*.apk' | head -5 || true)
-          echo "Found: $APK"
-
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: |
-            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
-            src-tauri/target/release/bundle/android/**/*.apk
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: warn
 
   build-ios:
