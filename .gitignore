@@ -8,6 +8,7 @@
 
 # ─── Node / Frontend ──────────────────────────────────────────────────
 src/node_modules/
+src-tauri/node_modules/
 src/dist/
 src/.svelte-kit/
 
