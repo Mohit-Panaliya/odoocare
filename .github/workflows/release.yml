@@ -244,13 +244,23 @@ jobs:
         env:
           CI: 'true'
 
+      - name: Package iOS app
+        run: |
+          APP=$(find src-tauri/gen/apple src-tauri/target -type d -name '*.app' | head -1)
+          echo "App bundle: $APP"
+          if [ -z "$APP" ]; then
+            echo "::error::No .app bundle found"
+            exit 1
+          fi
+          cd "$(dirname "$APP")"
+          zip -qr "$GITHUB_WORKSPACE/src-tauri/OdooCARE-simulator.app.zip" "$(basename "$APP")"
+          echo "Packaged $(basename "$APP")"
+
       - uses: actions/upload-artifact@v4
         with:
           name: ios-simulator
-          path: |
-            src-tauri/gen/apple/**/build/**/*.app
-            src-tauri/target/**/*.app
-          if-no-files-found: warn
+          path: src-tauri/OdooCARE-simulator.app.zip
+          if-no-files-found: error
 
   create-release:
     name: Create GitHub Release
@@ -267,7 +277,7 @@ jobs:
       - name: Flatten artifacts
         run: |
           mkdir -p release-files
-          find artifacts -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.dmg' -o -name '*.app' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.apk' \) -exec cp {} release-files/ \;
+          find artifacts -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.dmg' -o -name '*.zip' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.apk' \) -exec cp {} release-files/ \;
           ls -laR release-files/
 
       - name: Create Release
@@ -276,7 +286,7 @@ jobs:
           tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
           name: OdooCARE ${{ github.event.inputs.release_tag || github.ref_name }}
           body: |
-            ## OdooCARE v${{ github.event.inputs.release_tag || github.ref_name }}
+            ## OdooCARE ${{ github.event.inputs.release_tag || github.ref_name }}
 
             Odoo 17 CE Module Dependency Analyzer — a cross-platform desktop app built with Tauri v2.
 
@@ -289,7 +299,7 @@ jobs:
             | `OdooCARE_..._x64.dmg` | macOS (Intel) |
             | `OdooCARE_....deb` / `.rpm` / `.AppImage` | Linux |
             | `OdooCARE_....apk` | Android (APK) |
-            | iOS `.app` | iOS (simulator build, unsigned) |
+            | `OdooCARE-simulator.app.zip` | iOS (simulator .app bundle, unsigned) |
 
             **Note:** The iOS build is unsigned and targets the iOS Simulator — a signed, device-installable `.ipa` requires Apple signing credentials. The Android APK uses a generated debug keystore.
 
