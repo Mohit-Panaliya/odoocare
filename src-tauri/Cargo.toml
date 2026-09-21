@@ -5,8 +5,16 @@ edition = "2021"
 description = "Desktop app to analyze Odoo CE module ZIPs — resolve dependency order, detect missing modules, and prevent Odoo crashes after untested installations"
 authors = ["OdooCARE Team"]
 license = "MIT"
-repository = "https://github.com/MohitPanaliyaExtra/OdooCare"
-homepage = "https://github.com/MohitPanaliyaExtra/OdooCare"
+repository = "https://github.com/MohitPanaliya/OdooCare"
+homepage = "https://github.com/MohitPanaliya/OdooCare"
+
+[lib]
+name = "odoocare_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "odoocare"
+path = "src/main.rs"
 
 [package.metadata.tauri]
 bundle.identifier = "com.odoocare.analyzer"
